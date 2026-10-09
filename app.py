@@ -2,6 +2,10 @@ import streamlit as st
 import pandas as pd
 import numpy as np
 import cv2
+import io
+
+from reportlab.lib.pagesizes import letter
+from reportlab.pdfgen import canvas
 
 st.set_page_config(page_title="Corretor de Gabarito", layout="centered", initial_sidebar_state="expanded")
 
@@ -14,11 +18,82 @@ num_opcoes = st.sidebar.selectbox("Quantidade de Alternativas", [4, 5], index=1,
 
 letras = ['A', 'B', 'C', 'D', 'E'][:num_opcoes]
 
+# --- FUNÇÃO PARA GERAR O PDF DO GABARITO ---
+def gerar_pdf_gabarito(q_total, opt_total):
+    buffer = io.BytesIO()
+    c = canvas.Canvas(buffer, pagesize=letter)
+    width, height = letter # 612 x 792 pontos
+
+    # 1. Âncoras nos 4 cantos (Quadrados pretos para alinhamento OMR)
+    c.setFillColorRGB(0, 0, 0)
+    c.rect(30, height - 50, 20, 20, fill=True) # Topo Esquerdo
+    c.rect(width - 50, height - 50, 20, 20, fill=True) # Topo Direito
+    c.rect(30, 30, 20, 20, fill=True) # Base Esquerda
+    c.rect(width - 50, 30, 20, 20, fill=True) # Base Direita
+
+    # 2. Cabeçalho
+    c.setFont("Helvetica-Bold", 16)
+    c.drawString(70, height - 42, "CARTÃO RESPOSTA")
+    c.setFont("Helvetica", 10)
+    c.drawString(70, height - 60, "Preencha completamente os círculos com caneta preta ou azul.")
+
+    # 3. Grade de Frequência (Nº do Aluno: 2 dígitos - 0 a 9)
+    c.setFont("Helvetica-Bold", 10)
+    c.drawString(70, height - 90, "Nº FREQUÊNCIA:")
+    
+    start_x = 70
+    start_y = height - 110
+    for col in range(2): # 2 dígitos
+        for digit in range(10):
+            x = start_x + (col * 35)
+            y = start_y - (digit * 15)
+            c.circle(x, y, 5, fill=False)
+            c.setFont("Helvetica", 7)
+            c.drawString(x - 2, y - 2, str(digit))
+
+    # 4. Questões e Alternativas
+    c.setFont("Helvetica-Bold", 11)
+    c.drawString(200, height - 90, "RESPOSTAS:")
+
+    y_q = height - 110
+    x_q = 200
+    for q in range(1, q_total + 1):
+        c.setFont("Helvetica-Bold", 9)
+        c.drawString(x_q, y_q, f"{q:02d}:")
+
+        for opt_idx in range(opt_total):
+            x_circle = x_q + 25 + (opt_idx * 22)
+            c.circle(x_circle, y_q + 3, 5, fill=False)
+            c.setFont("Helvetica", 7)
+            c.drawString(x_circle - 2, y_q + 1, letras[opt_idx])
+
+        y_q -= 18
+        # Se passar de 30 questões, move para a coluna ao lado
+        if q == 25:
+            y_q = height - 110
+            x_q += 160
+
+    c.showPage()
+    c.save()
+    buffer.seek(0)
+    return buffer
+
+# --- BOTÃO DE GERAR GABARITO IMPRESSO ---
+st.sidebar.divider()
+st.sidebar.subheader("🖨️ Modelo da Folha")
+pdf_bytes = gerar_pdf_gabarito(num_questoes, num_opcoes)
+st.sidebar.download_button(
+    label="📄 Baixar PDF do Gabarito",
+    data=pdf_bytes,
+    file_name=f"gabarito_{num_questoes}Q.pdf",
+    mime="application/pdf",
+    key="btn_download_pdf"
+)
+
 # --- DEFINIÇÃO DO GABARITO OFICIAL (LISTA VERTICAL ÚNICA) ---
 st.subheader("1. Gabarito Oficial")
 gabarito_oficial = []
 
-# Exibição sequencial estrita (1, 2, 3, 4...) perfeita para telas móveis
 for i in range(num_questoes):
     resp = st.selectbox(
         f"Questão {i+1:02d}", 
