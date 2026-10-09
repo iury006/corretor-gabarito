@@ -14,23 +14,18 @@ num_opcoes = st.sidebar.selectbox("Quantidade de Alternativas", [4, 5], index=1,
 
 letras = ['A', 'B', 'C', 'D', 'E'][:num_opcoes]
 
-# --- DEFINIÇÃO DO GABARITO OFICIAL (ORDEM FIXA) ---
+# --- DEFINIÇÃO DO GABARITO OFICIAL (LISTA VERTICAL ÚNICA) ---
 st.subheader("1. Gabarito Oficial")
 gabarito_oficial = []
 
-# Layout em container fixo e sequencial para evitar reorganização/embaralhamento no celular
-with st.container():
-    # Em telas pequenas/celular, exibe 2 por linha de forma sequencial limpa
-    c1, c2 = st.columns(2)
-    for i in range(num_questoes):
-        col = c1 if i % 2 == 0 else c2
-        with col:
-            resp = st.selectbox(
-                f"Questão {i+1:02d}", 
-                letras, 
-                key=f"gabarito_q_{i+1}"  # Chave estática única atrelada ao número da questão
-            )
-            gabarito_oficial.append(resp)
+# Exibição sequencial estrita (1, 2, 3, 4...) perfeita para telas móveis
+for i in range(num_questoes):
+    resp = st.selectbox(
+        f"Questão {i+1:02d}", 
+        letras, 
+        key=f"gabarito_q_{i+1}"
+    )
+    gabarito_oficial.append(resp)
 
 # --- INICIALIZAÇÃO DA SESSÃO ---
 if "resultados" not in st.session_state:
@@ -41,26 +36,20 @@ st.divider()
 # --- LEITURA DO GABARITO DO ALUNO ---
 st.subheader("2. Corrigir Cartão Resposta")
 
-# Captura de foto usando câmera nativa
-st.write("📌 *Ao abrir a câmera pela primeira vez, permita o acesso à câmera no seu navegador.*")
+st.write("📌 *Ao abrir a câmera pela primeira vez, permita o acesso no seu navegador.*")
 foto = st.camera_input("Capturar Gabarito", key="camera_input_aluno")
 
 if foto is not None:
-    # Converter imagem para OpenCV
     bytes_data = foto.getvalue()
     cv2_img = cv2.imdecode(np.frombuffer(bytes_data, np.uint8), cv2.IMREAD_COLOR)
 
-    c_num, c_nome = st.columns([1, 2])
-    with c_num:
-        numero_aluno = st.text_input("Nº Frequência:", key="input_num_aluno")
-    with c_nome:
-        nome_aluno = st.text_input("Nome do Aluno (Opcional):", key="input_nome_aluno")
+    numero_aluno = st.text_input("Nº Frequência:", key="input_num_aluno")
+    nome_aluno = st.text_input("Nome do Aluno (Opcional):", key="input_nome_aluno")
 
     if st.button("💾 Salvar Correção", key="btn_salvar_nota"):
         if not numero_aluno:
             st.warning("Insira o número da frequência antes de salvar.")
         else:
-            # Lógica simulada de acertos
             acertos_simulados = np.random.randint(0, num_questoes + 1)
             nota = round((acertos_simulados / num_questoes) * 10, 1)
 
