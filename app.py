@@ -24,25 +24,35 @@ def gerar_pdf_gabarito(q_total, opt_total):
     c = canvas.Canvas(buffer, pagesize=letter)
     width, height = letter # 612 x 792 pontos
 
-    # 1. Âncoras nos 4 cantos (Quadrados pretos para alinhamento OMR)
+    anchor_size = 18
+
+    # 1. Âncoras nos 4 cantos (Quadrados pretos síncronos)
     c.setFillColorRGB(0, 0, 0)
-    c.rect(30, height - 50, 20, 20, fill=True) # Topo Esquerdo
-    c.rect(width - 50, height - 50, 20, 20, fill=True) # Topo Direito
-    c.rect(30, 30, 20, 20, fill=True) # Base Esquerda
-    c.rect(width - 50, 30, 20, 20, fill=True) # Base Direita
+    c.rect(35, height - 53, anchor_size, anchor_size, fill=True, stroke=False)        # Topo Esquerdo
+    c.rect(width - 53, height - 53, anchor_size, anchor_size, fill=True, stroke=False) # Topo Direito
+    c.rect(35, 35, anchor_size, anchor_size, fill=True, stroke=False)                  # Base Esquerda
+    c.rect(width - 53, 35, anchor_size, anchor_size, fill=True, stroke=False)           # Base Direita
 
     # 2. Cabeçalho
     c.setFont("Helvetica-Bold", 16)
     c.drawString(70, height - 42, "CARTÃO RESPOSTA")
-    c.setFont("Helvetica", 10)
-    c.drawString(70, height - 60, "Preencha completamente os círculos com caneta preta ou azul.")
+    c.setFont("Helvetica", 9)
+    c.drawString(70, height - 55, "Preencha completamente os círculos com caneta preta ou azul.")
 
-    # 3. Grade de Frequência (Nº do Aluno: 2 dígitos - 0 a 9)
+    # 3. Campos de Nome do Estudante e Turma
     c.setFont("Helvetica-Bold", 10)
-    c.drawString(70, height - 90, "Nº FREQUÊNCIA:")
+    c.drawString(70, height - 78, "NOME:")
+    c.line(110, height - 80, 380, height - 80)
+    
+    c.drawString(400, height - 78, "TURMA:")
+    c.line(450, height - 80, 530, height - 80)
+
+    # 4. Grade de Frequência (Nº do Aluno: 2 dígitos - 0 a 9)
+    c.setFont("Helvetica-Bold", 10)
+    c.drawString(70, height - 108, "Nº FREQUÊNCIA:")
     
     start_x = 70
-    start_y = height - 110
+    start_y = height - 128
     for col in range(2): # 2 dígitos
         for digit in range(10):
             x = start_x + (col * 35)
@@ -51,11 +61,11 @@ def gerar_pdf_gabarito(q_total, opt_total):
             c.setFont("Helvetica", 7)
             c.drawString(x - 2, y - 2, str(digit))
 
-    # 4. Questões e Alternativas
-    c.setFont("Helvetica-Bold", 11)
-    c.drawString(200, height - 90, "RESPOSTAS:")
+    # 5. Questões e Alternativas
+    c.setFont("Helvetica-Bold", 10)
+    c.drawString(200, height - 108, "RESPOSTAS:")
 
-    y_q = height - 110
+    y_q = height - 128
     x_q = 200
     for q in range(1, q_total + 1):
         c.setFont("Helvetica-Bold", 9)
@@ -68,10 +78,9 @@ def gerar_pdf_gabarito(q_total, opt_total):
             c.drawString(x_circle - 2, y_q + 1, letras[opt_idx])
 
         y_q -= 18
-        # Se passar de 30 questões, move para a coluna ao lado
-        if q == 25:
-            y_q = height - 110
-            x_q += 160
+        if q % 25 == 0 and q < q_total:
+            y_q = height - 128
+            x_q += 150
 
     c.showPage()
     c.save()
