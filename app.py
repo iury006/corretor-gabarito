@@ -18,69 +18,77 @@ num_opcoes = st.sidebar.selectbox("Quantidade de Alternativas", [4, 5], index=1,
 
 letras = ['A', 'B', 'C', 'D', 'E'][:num_opcoes]
 
-# --- FUNÇÃO PARA GERAR O PDF DO GABARITO ---
+# --- FUNÇÃO PARA GERAR O PDF COMPACTO DO GABARITO ---
 def gerar_pdf_gabarito(q_total, opt_total):
     buffer = io.BytesIO()
     c = canvas.Canvas(buffer, pagesize=letter)
     width, height = letter # 612 x 792 pontos
 
-    anchor_size = 18
+    # Cálculo da largura e altura dinâmica do bloco compacto com base no nº de questões
+    num_colunas_questoes = 1 + ((q_total - 1) // 20)
+    box_width = 240 + (num_colunas_questoes * 120)
+    q_por_coluna = min(q_total, 20)
+    box_height = 100 + max(q_por_coluna * 16, 150)
 
-    # 1. Âncoras nos 4 cantos (Quadrados pretos síncronos)
+    # Posição inicial (topo esquerdo do cartão compacto)
+    x_start = 40
+    y_top = height - 40
+    y_bottom = y_top - box_height
+    anchor_size = 16
+
+    # 1. Âncoras pretas bem próximas abraçando o conteúdo
     c.setFillColorRGB(0, 0, 0)
-    c.rect(35, height - 53, anchor_size, anchor_size, fill=True, stroke=False)        # Topo Esquerdo
-    c.rect(width - 53, height - 53, anchor_size, anchor_size, fill=True, stroke=False) # Topo Direito
-    c.rect(35, 35, anchor_size, anchor_size, fill=True, stroke=False)                  # Base Esquerda
-    c.rect(width - 53, 35, anchor_size, anchor_size, fill=True, stroke=False)           # Base Direita
+    c.rect(x_start, y_top - anchor_size, anchor_size, anchor_size, fill=True, stroke=False) # Topo-Esq
+    c.rect(x_start + box_width - anchor_size, y_top - anchor_size, anchor_size, anchor_size, fill=True, stroke=False) # Topo-Dir
+    c.rect(x_start, y_bottom, anchor_size, anchor_size, fill=True, stroke=False) # Base-Esq
+    c.rect(x_start + box_width - anchor_size, y_bottom, anchor_size, anchor_size, fill=True, stroke=False) # Base-Dir
 
-    # 2. Cabeçalho
-    c.setFont("Helvetica-Bold", 16)
-    c.drawString(70, height - 42, "CARTÃO RESPOSTA")
-    c.setFont("Helvetica", 9)
-    c.drawString(70, height - 55, "Preencha completamente os círculos com caneta preta ou azul.")
+    # 2. Cabeçalho Compacto
+    c.setFont("Helvetica-Bold", 14)
+    c.drawString(x_start + 25, y_top - 14, "CARTÃO RESPOSTA")
 
-    # 3. Campos de Nome do Estudante e Turma
-    c.setFont("Helvetica-Bold", 10)
-    c.drawString(70, height - 78, "NOME:")
-    c.line(110, height - 80, 380, height - 80)
-    
-    c.drawString(400, height - 78, "TURMA:")
-    c.line(450, height - 80, 530, height - 80)
+    # 3. Campos de Identificação
+    c.setFont("Helvetica-Bold", 9)
+    c.drawString(x_start + 25, y_top - 32, "NOME:")
+    c.line(x_start + 60, y_top - 34, x_start + 220, y_top - 34)
+
+    c.drawString(x_start + 230, y_top - 32, "TURMA:")
+    c.line(x_start + 270, y_top - 34, x_start + box_width - 25, y_top - 34)
 
     # 4. Grade de Frequência (Nº do Aluno: 2 dígitos - 0 a 9)
-    c.setFont("Helvetica-Bold", 10)
-    c.drawString(70, height - 108, "Nº FREQUÊNCIA:")
-    
-    start_x = 70
-    start_y = height - 128
-    for col in range(2): # 2 dígitos
+    c.setFont("Helvetica-Bold", 9)
+    c.drawString(x_start + 25, y_top - 55, "FREQUÊNCIA:")
+
+    y_freq = y_top - 72
+    for col in range(2):
         for digit in range(10):
-            x = start_x + (col * 35)
-            y = start_y - (digit * 15)
-            c.circle(x, y, 5, fill=False)
-            c.setFont("Helvetica", 7)
-            c.drawString(x - 2, y - 2, str(digit))
+            x = x_start + 28 + (col * 28)
+            y = y_freq - (digit * 13)
+            c.circle(x, y, 4.5, fill=False)
+            c.setFont("Helvetica", 6)
+            c.drawString(x - 1.8, y - 2, str(digit))
 
     # 5. Questões e Alternativas
-    c.setFont("Helvetica-Bold", 10)
-    c.drawString(200, height - 108, "RESPOSTAS:")
+    c.setFont("Helvetica-Bold", 9)
+    c.drawString(x_start + 115, y_top - 55, "RESPOSTAS:")
 
-    y_q = height - 128
-    x_q = 200
+    y_q = y_top - 72
+    x_q = x_start + 115
+
     for q in range(1, q_total + 1):
-        c.setFont("Helvetica-Bold", 9)
+        c.setFont("Helvetica-Bold", 8)
         c.drawString(x_q, y_q, f"{q:02d}:")
 
         for opt_idx in range(opt_total):
-            x_circle = x_q + 25 + (opt_idx * 22)
-            c.circle(x_circle, y_q + 3, 5, fill=False)
-            c.setFont("Helvetica", 7)
-            c.drawString(x_circle - 2, y_q + 1, letras[opt_idx])
+            x_circle = x_q + 22 + (opt_idx * 18)
+            c.circle(x_circle, y_q + 2.5, 4.5, fill=False)
+            c.setFont("Helvetica", 6)
+            c.drawString(x_circle - 1.8, y_q + 0.5, letras[opt_idx])
 
-        y_q -= 18
-        if q % 25 == 0 and q < q_total:
-            y_q = height - 128
-            x_q += 150
+        y_q -= 15
+        if q % 20 == 0 and q < q_total:
+            y_q = y_top - 72
+            x_q += 115
 
     c.showPage()
     c.save()
